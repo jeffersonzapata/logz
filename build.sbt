@@ -15,3 +15,17 @@ lazy val core = project
       Deps.miniTest % Test
     )
   )
+
+lazy val slf4j = project
+  .settings(
+    commonSettings,
+    name += "-slf4j",
+    libraryDependencies ++= Seq(
+      Deps.catsEffects,
+      Deps.logstashEncoder,
+      Deps.slf4jApi,
+      Deps.miniTest  % Test,
+      Deps.slf4jTest % Test
+    )
+  )
+  .dependsOn(core)
