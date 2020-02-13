@@ -1,5 +1,6 @@
 lazy val commonSettings = Seq(
   name := "logz",
+  organization := "logz",
   scalaVersion := "2.13.1",
   addCompilerPlugin(Deps.betterMonadicFor),
   wartremoverErrors ++= Warts.allBut(Wart.Overloading),
@@ -11,10 +12,30 @@ lazy val core = project
     commonSettings,
     name += "-core",
     libraryDependencies ++= Seq(
-      Deps.catsEffects % Test,
       Deps.miniTest % Test
     )
   )
+
+lazy val `test-instances` = project
+  .settings(
+    commonSettings,
+    name += "-test-instances",
+    libraryDependencies ++= Seq(
+      Deps.catsEffects,
+      Deps.miniTest % Test
+    )
+  )
+  .dependsOn(core)
+
+lazy val `context-provider` = project
+  .settings(
+    commonSettings,
+    name += "-context-provider",
+    libraryDependencies ++= Seq(
+      Deps.miniTest % Test
+    )
+  )
+  .dependsOn(core, `test-instances` % Test)
 
 lazy val slf4j = project
   .settings(

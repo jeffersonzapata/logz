@@ -1,8 +1,8 @@
-package logz
+package logz.instances
 
 import cats.effect.IO
 import cats.effect.concurrent.Ref
-import logz.instances.TestLogger
+import logz.Logger
 import minitest.SimpleTestSuite
 
 object TestLoggerSpec extends SimpleTestSuite {
