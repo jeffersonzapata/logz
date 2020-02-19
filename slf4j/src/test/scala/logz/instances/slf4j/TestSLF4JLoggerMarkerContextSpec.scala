@@ -13,8 +13,8 @@ import scala.jdk.CollectionConverters._
 object TestSLF4JLoggerMarkerContextSpec extends SimpleTestSuite {
 
   testAsync("should log correctly") {
-    val context1: Context = Context(Map("correlationId" -> "corId1"))
-    val context2: Context = Context(Map("correlationId" -> "corId2"))
+    val context1: Context = Context(Map("correlation_id" -> "corId1"))
+    val context2: Context = Context(Map("correlation_id" -> "corId2"))
     val ex: Exception = new Exception("Exception")
     val result = for {
       slf4j <- TestLoggerFactory.getTestLogger("TestSLF4JLoggerMarkerContextSpec").pure[IO]
@@ -26,12 +26,14 @@ object TestSLF4JLoggerMarkerContextSpec extends SimpleTestSuite {
       _ <- LoggerContext.error[IO, Exception](context2)(ex)("error")
       _ <- IO.pure {
         val logs = slf4j.getLoggingEvents.asScala
+        val expectedContext1: Map[String, String] = context1.entries + ("context_id" -> context1.contextId)
+        val expectedContext2: Map[String, String] = context2.entries + ("context_id" -> context2.contextId)
         assertEquals(logs.size, 5)
-        assertEquals(logs(0), debug(appendEntries(Map("correlationId" -> "corId1").asJava), "debug"))
-        assertEquals(logs(1), info(appendEntries(Map("correlationId" -> "corId2").asJava), "info"))
-        assertEquals(logs(2), warn(appendEntries(Map("correlationId" -> "corId2").asJava), "warn"))
-        assertEquals(logs(3), error(appendEntries(Map("correlationId" -> "corId1").asJava), "error"))
-        assertEquals(logs(4), error(appendEntries(Map("correlationId" -> "corId2").asJava), ex, "error"))
+        assertEquals(logs(0), debug(appendEntries(expectedContext1.asJava), "debug"))
+        assertEquals(logs(1), info(appendEntries(expectedContext2.asJava), "info"))
+        assertEquals(logs(2), warn(appendEntries(expectedContext2.asJava), "warn"))
+        assertEquals(logs(3), error(appendEntries(expectedContext1.asJava), "error"))
+        assertEquals(logs(4), error(appendEntries(expectedContext2.asJava), ex, "error"))
       }
     } yield ()
     result.unsafeToFuture()
