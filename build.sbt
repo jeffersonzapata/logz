@@ -32,6 +32,7 @@ lazy val `context-provider` = project
     commonSettings,
     name += "-context-provider",
     libraryDependencies ++= Seq(
+      Deps.catsEffects,
       Deps.miniTest % Test
     )
   )
