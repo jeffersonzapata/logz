@@ -1,6 +1,6 @@
 lazy val commonSettings = Seq(
   name := "logz",
-  organization := "logz",
+  organization := "com.github.jeffersonzapata",
   scalaVersion := "2.13.1",
   addCompilerPlugin(Deps.betterMonadicFor),
   wartremoverErrors ++= Warts.allBut(Wart.Overloading),
