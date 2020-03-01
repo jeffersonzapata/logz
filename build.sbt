@@ -66,7 +66,7 @@ inThisBuild(List(
   ),
   scmInfo := Some(ScmInfo(url("https://github.com/jeffersonzapata/logz"), "scm:git:git@github.com:jeffersonzapata/logz.git")),
 
-  pgpPublicRing := file("/keys/.gnupg/pubring.asc"),
-  pgpSecretRing := file("/keys/.gnupg/secring.asc"),
+  pgpPublicRing := file(".gnupg/pubring.asc"),
+  pgpSecretRing := file(".gnupg/secring.asc"),
   releaseEarlyWith := SonatypePublisher
 ))
