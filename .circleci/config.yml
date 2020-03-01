@@ -26,11 +26,9 @@ jobs:
       TERM: dumb
     steps:
       - checkout
+      - run: git fetch --tags
       - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "build.sbt" }}
-            - v1-dependencies-
-      - run: mkdir -p .gnupg
+          key: sbt-cache
       - run: echo $GPG_SEC | base64 --decode > /tmp/secring.asc
       - run: echo $GPG_PUB | base64 --decode > /tmp/pubring.asc
       - run: sbt releaseEarly
