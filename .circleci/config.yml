@@ -32,7 +32,7 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
             - v1-dependencies-
-      - run: cat /dev/null |
+      - run: |
           mkdir -p .gnupg
           echo $GPG_SEC | base64 --decode > .gnupg/secring.asc
           echo $GPG_PUB | base64 --decode > .gnupg/pubring.asc
