@@ -8,7 +8,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val core = project
-  .settings(
+  .settings(homepage := Some(url("https://github.com/$ORG/$PROJECT")),
     commonSettings,
     name += "-core",
     libraryDependencies ++= Seq(
@@ -51,3 +51,22 @@ lazy val slf4j = project
     )
   )
   .dependsOn(core)
+
+inThisBuild(List(
+  organization := "com.github.jeffersonzapata",
+  licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+  homepage := Some(url("https://github.com/jeffersonzapata/logz")),
+  developers := List(
+    Developer(
+      "jeffersonzapata",
+      "Jefferson Zapata",
+      "jefferson.zapata.sierra@gmail.com",
+      url("https://github.com/jeffersonzapata")
+    )
+  ),
+  scmInfo := Some(ScmInfo(url("https://github.com/jeffersonzapata/logz"), "scm:git:git@github.com:jeffersonzapata/logz.git")),
+
+  pgpPublicRing := file("/keys/.gnupg/pubring.asc"),
+  pgpSecretRing := file("/keys/.gnupg/secring.asc"),
+  releaseEarlyWith := SonatypePublisher
+))
