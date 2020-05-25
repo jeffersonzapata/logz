@@ -1,78 +1,146 @@
 # LogZ
 
-Simple lightweight logging library open to extension, save some time and money with Log Buffer.
+Simple lightweight logging library
+ - Composable
+ - Modular
+ - Open to extension
+ - And it can help you to save some money with [Log Buffer](https://github.com/jeffersonzapata/logz#log-buffer) .
 
 ## Getting Started
 
-Imports the modules you need
+Add the following dependencies to you `build.sbt`
 ```sbt
-"logz" %%  "logz-core"              % "0.0.1"  // core lightweight abstractions
-"logz" %%  "logz-test-instances"    % "0.0.1"  // test instances
-"logz" %%  "logz-slf4j"             % "0.0.1"  // slf4j instances
-"logz" %%  "logz-context-provider"  % "0.0.1"
+"com.github.jeffersonzapata" %%  "logz-core"              % "0.0.1"  // core lightweight abstractions
+"com.github.jeffersonzapata" %%  "logz-test-instances"    % "0.0.1"  // test instances
+"com.github.jeffersonzapata" %%  "logz-slf4j"             % "0.0.1"  // slf4j instances
+"com.github.jeffersonzapata" %%  "logz-context-provider"  % "0.0.1"
 ```
 
-Allow your functions/libraries to be part of the app's history without committing to a specific implementation
-(no needs external dependencies).
+### Core Module
+let your functions/libraries be part of the application history without committing to a specific implementation
+(it doesn't depends on any external dependencies).
 ```scala
 import logz.Logger
 
-def myGreatLibrary[F[_]](implicit logger: Logger[F]): F[Unit] = {
-    Logger.debug[F]("debug")
-    //...
-}
-// or just
-def myGreatLibrary[F[_]: Logger]: F[Unit] = {
-  Logger.debug[F]("debug")
-  //...
+def addTwoNumbers(a: Int, b: Int)(implicit logger: Logger[IO]): IO[Int] = {
+  for {
+    _ <- Logger.debug[IO](s"I'm adding $a plus $b")
+    c <- IO(a + b)
+    _ <- Logger.info[IO](s"The result is $c!")
+  } yield c
 }
 ```
 
+### Logz Instances
 Choose how the history should be written.
+`logz-slf4j`, `logz-test-instances` and `logz-context-provider` provide useful implementations
 
+#### `logz-slf4j`
+`SLF4JLogger` provides a SLF4J basic implementation
 ```scala
-// Improve your tests with an in memory logger
-import logz.instances.TestLogger
-import logz.instances.TestLoggerContext
-
-// SLF4J instances
+import logz.Logger
 import logz.instances.slf4j.SLF4JLogger
 
-// SLF4J instances with Context (if you want to understand your app's history you'll need some context).
+val slf4jLogger = org.slf4j.LoggerFactory.getLogger("LogzExample")
+
+implicit val logger: Logger[IO] = SLF4JLogger[IO](slf4jLogger)
+addTwoNumbers(4, 6)
+
+//[main] DEBUG LogzExample  - I'm adding 4 plus 6
+//[main] INFO  LogzExample  - the result is 10!
+```
+
+Add context to your logs with `LoggerContext`
+```scala
+// Context will marks you logs with a identifier
 import logz.instances.slf4j.SLF4JLoggerMarkerContext    // recommended
 import logz.instances.slf4j.SLF4JLoggerMDCContext       // not recommend for multi-thread applications
 
-// a LoggerContext instance with Context inside
-import logz.context.providers.LoggerCtxtProvided
-import logz.context.providers.LoggerCtxtProvidedBuffer  // (include the Log Buffer feature)
+val slf4jLogger = org.slf4j.LoggerFactory.getLogger("LogzExample")
+
+implicit val loggerContext: LoggerContext[IO] = SLF4JLoggerMarkerContext[IO](slf4jLogger)
+val ctx: Context = Context()
+
+for {
+  result <- addTwoNumbers(4, 6)
+  _      <- LoggerContext.info[IO](ctx)(s"I got the result $result!")
+} yield result
+
+//[main] DEBUG LogzExample  - I'm adding 4 plus 6      // you can add a `context_id` to these logs without modifying
+//[main] INFO  LogzExample  - the result is 10!        // the `addTwoNumbers` function by using `LoggerCtxProvided`
+//[main] INFO  LogzExample {context_id=e7ebce44-b7b0-4993-acdc-530d9e3d2bcc} - I got the result 10!
+```
+
+
+#### `logz-context-provider`
+`LoggerCtxProvided` makes your life easier
+
+```scala
+import logz.instances.slf4j.SLF4JLoggerMarkerContext
+import logz.syntax.context._
+
+val slf4jLogger = org.slf4j.LoggerFactory.getLogger("LogzExample")
+val loggerContext: LoggerContext[IO] = SLF4JLoggerMarkerContext[IO](slf4jLogger)
+implicit val loggerCtxProvided: LoggerCtxProvided[IO] = Context().toLoggerCtxProvided(loggerContext)
+
+for {
+  result <- addTwoNumbers(4, 6)
+  _      <- LoggerCtxProvided.info[IO](s"I got the result $result!") // yep, no need to pass `context1`
+  _      <- LoggerCtxProvided.debug[IO](s"We got a context_id for free!")
+} yield result
+
+//[main] DEBUG LogzExample {context_id=a5a741a8-a0b6-4406-82f4-4cef0d883a8e} - I'm adding 4 plus 6
+//[main] INFO  LogzExample {context_id=a5a741a8-a0b6-4406-82f4-4cef0d883a8e} - the result is 10!
+//[main] INFO  LogzExample {context_id=a5a741a8-a0b6-4406-82f4-4cef0d883a8e} - I got the result 10!
+//[main] DEBUG  LogzExample {context_id=a5a741a8-a0b6-4406-82f4-4cef0d883a8e} - We got a context_id for free
+```
+
+`LoggerCtxProvidedBuffer` takes care of your disk space and your time looking for errors
+by writing the complete log's history only when a Warning or an Error is being logged
+
+```scala
+import logz.instances.slf4j.SLF4JLoggerMarkerContext
+import logz.syntax.context._
+
+val slf4jLogger = org.slf4j.LoggerFactory.getLogger("LogzExample")
+val loggerContext: LoggerContext[IO] = SLF4JLoggerMarkerContext[IO](slf4jLogger)
+
+Context().toLoggerCtxProvidedBuffer[IO, Int](loggerContext)(implicit logger =>
+  for {
+    result <- addTwoNumbers(4, 6)
+    _ <- Logger.info[IO](s"I got the result $result!")
+    _ <- LoggerCtxProvidedBuffer.debugB[IO](s"This will only be written if there is a Warning or an Error log")
+    _ <- LoggerCtxProvidedBuffer.warnB[IO](s"I will write the previous logs")
+    _ <- LoggerCtxProvidedBuffer.infoB[IO](s"I won't show up, you don't need me")
+  } yield result
+)
+
+//[main] DEBUG LogzExample {context_id=95000a64-2d7b-4152-b1b6-869cef907eda} - I'm adding 4 plus 6
+//[main] INFO  LogzExample {context_id=95000a64-2d7b-4152-b1b6-869cef907eda} - the result is 10!
+//[main] INFO  LogzExample {context_id=95000a64-2d7b-4152-b1b6-869cef907eda} - I got the result 10!
+//[main] DEBUG LogzExample {context_id=95000a64-2d7b-4152-b1b6-869cef907eda} - This will only be written if there is a Warning or an Error log
+//[main] WARN  LogzExample {context_id=95000a64-2d7b-4152-b1b6-869cef907eda} - I will write the previous log
+```
+
+#### `logz-test-instances`
+Provides your tests with an in memory logger
+
+```scala
+import logz.instances.TestLogger
+import logz.instances.TestLoggerContext
 
 // Example
 val slf4j: org.slf4j.Logger = TestLoggerFactory.getTestLogger("TestSLF4JLoggerMarkerContextSpec").pure[IO]
 implicit val logger: LoggerContext[IO] = SLF4JLoggerMarkerContext[IO](slf4j)
 myGreatLibrary[IO]()
 ```
-[TestLogger Example]()
-[TestLoggerContext Example]()
-[SLF4JLogger Example]()
-[SLF4JLoggerMarkerContext Example]()
-[SLF4JLoggerMDCContext Example]()
-[LoggerContextProvided Example]()
 
-Do you want more choices? send yours!.
-
-## Log Buffer
-
-Log Buffer will help you to save disk space by writing the whole log's history only when you log a warning or an error
-
-```scala
-for {
- _ <- LoggerContextProvided.debug[IO]("debug")  // Writes `debug` in the log.
- _ <- LoggerContextProvided.debugB[IO]("debugB") // Doesn't write in the log, yet.
- _ <- LoggerContextProvided.infoB[IO]("infoB")   // Doesn't write in the log, yet.
- _ <- LoggerContextProvided.warnB[IO]("warnB")   // Writes `debugB`, `infoB` and `warnB` in log.
- _ <- LoggerContextProvided.errorB[IO]("errorB") // Writes 'errorB' in the log.
-} yield ()
-```
+- [TestLogger Example]()
+- [TestLoggerContext Example]()
+- [SLF4JLogger Example]()
+- [SLF4JLoggerMarkerContext Example]()
+- [SLF4JLoggerMDCContext Example]()
+- [LoggerContextProvided Example]()
 
 
 
