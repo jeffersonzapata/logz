@@ -69,8 +69,9 @@ object TestLoggerCtxProvidedBufferSpec extends SimpleTestSuite {
     val result: IO[Unit] = for {
       testLogger <- Ref.of[IO, List[String]](List.empty[String])
       loggerCtx: LoggerContext[IO] = TestLoggerContext[IO](testLogger)
-      result <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
-        app[IO](testLogger)
+      result <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) {
+        implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
+          app[IO](testLogger)
       }
     } yield result
     result.unsafeToFuture()
@@ -90,14 +91,18 @@ object TestLoggerCtxProvidedBufferSpec extends SimpleTestSuite {
     val result: IO[Unit] = for {
       testLogger <- Ref.of[IO, List[String]](List.empty[String])
       loggerCtx: LoggerContext[IO] = TestLoggerContext[IO](testLogger)
-      result <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
-        app[IO]
-      }.handleError(_ => ())
+      result <- ctx
+        .toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
+          app[IO]
+        }
+        .handleError(_ => ())
       _ <- testLogger.get.map { logs =>
         assertEquals(logs.size, 3)
         assertEquals(logs(2), "Level: DEBUG, msg: debug, ctx: Map(correlation_id -> corId1)")
         assertEquals(logs(1), "Level: INFO, msg: info, ctx: Map(correlation_id -> corId1)")
-        assertEquals(logs(0),s"Level: ERROR, msg: Unhandled Error, ctx: Map(correlation_id -> corId1), exception: ${unhandledError.getMessage}")
+        assertEquals(
+          logs(0),
+          s"Level: ERROR, msg: Unhandled Error, ctx: Map(correlation_id -> corId1), exception: ${unhandledError.getMessage}")
       }
     } yield result
     result.unsafeToFuture()
@@ -117,9 +122,11 @@ object TestLoggerCtxProvidedBufferSpec extends SimpleTestSuite {
     val result: IO[Unit] = for {
       testLogger <- Ref.of[IO, List[String]](List.empty[String])
       loggerCtx: LoggerContext[IO] = TestLoggerContext[IO](testLogger)
-      result <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
-        app[IO]
-      }.handleError(_ => ())
+      result <- ctx
+        .toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit loggerWithContext: LoggerCtxProvidedBuffer[IO] =>
+          app[IO]
+        }
+        .handleError(_ => ())
       _ <- testLogger.get.map { logs =>
         assertEquals(logs.size, 3)
         assertEquals(logs(2), "Level: DEBUG, msg: debug, ctx: Map(correlation_id -> corId1)")

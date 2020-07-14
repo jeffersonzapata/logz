@@ -15,7 +15,7 @@ object TestSLF4JLoggerMarkerContextSpec extends SimpleTestSuite {
   testAsync("should log correctly") {
     val context1: Context = Context(Map("correlation_id" -> "corId1"))
     val context2: Context = Context(Map("correlation_id" -> "corId2"))
-    val ex: Exception = new Exception("Exception")
+    val ex: Exception     = new Exception("Exception")
     val result = for {
       slf4j <- TestLoggerFactory.getTestLogger("TestSLF4JLoggerMarkerContextSpec").pure[IO]
       implicit0(logger: LoggerContext[IO]) = SLF4JLoggerMarkerContext[IO](slf4j)
@@ -25,7 +25,7 @@ object TestSLF4JLoggerMarkerContextSpec extends SimpleTestSuite {
       _ <- LoggerContext.error[IO](context1)("error")
       _ <- LoggerContext.error[IO, Exception](context2)(ex)("error")
       _ <- IO.pure {
-        val logs = slf4j.getLoggingEvents.asScala
+        val logs                                  = slf4j.getLoggingEvents.asScala
         val expectedContext1: Map[String, String] = context1.entries + ("context_id" -> context1.contextId)
         val expectedContext2: Map[String, String] = context2.entries + ("context_id" -> context2.contextId)
         assertEquals(logs.size, 5)

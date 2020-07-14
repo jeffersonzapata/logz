@@ -12,5 +12,5 @@ final case class Error[E <: Throwable] private (exception: Option[E]) extends Le
 
 object Error {
   def apply[E <: Throwable](exception: E): Error[E] = new Error(Some(exception))
-  def apply(): Error[Nothing] = new Error(None)
+  def apply(): Error[Nothing]                       = new Error(None)
 }

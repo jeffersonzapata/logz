@@ -14,7 +14,7 @@ object TestSLF4JLoggerMDCContextSpec extends SimpleTestSuite {
   testAsync("should log correctly") {
     val context1: Context = Context(Map("correlationId" -> "corId1"))
     val context2: Context = Context(Map("correlationId" -> "corId2"))
-    val ex: Exception = new Exception("Exception")
+    val ex: Exception     = new Exception("Exception")
     val result = for {
       slf4j <- TestLoggerFactory.getTestLogger("TestSLF4JLoggerMDCContextSpec").pure[IO]
       implicit0(logger: LoggerContext[IO]) = SLF4JLoggerMDCContext[IO](slf4j)

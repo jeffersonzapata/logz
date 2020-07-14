@@ -16,7 +16,7 @@ object SLF4JLoggerMarkerContext {
       override def log(level: Level)(msg: => String): F[Unit] = SLF4JLogger[F](logger).log(level)(msg)
 
       override def log(ctx: Context)(level: Level)(msg: => String): F[Unit] = {
-        val context: Map[String, String] = ctx.entries + ("context_id" -> ctx.contextId)
+        val context: Map[String, String]    = ctx.entries + ("context_id" -> ctx.contextId)
         val logstashMarkers: LogstashMarker = Markers.appendEntries(context.asJava)
         level match {
           case Debug => logger.debug(logstashMarkers, msg).pure[F]
