@@ -1,29 +1,64 @@
 version: 2
 jobs:
-  build:
+  lint212_jdk11:
     docker:
-      - image: circleci/openjdk:8-jdk
-    environment:
-      JVM_OPTS: -Xmx3200m
-      TERM: dumb
+      - image: hseeberger/scala-sbt:11.0.4_1.3.4_2.12.10
     steps:
       - checkout
       - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "build.sbt" }}
-            - v1-dependencies-
-      - run: cat /dev/null | sbt test:compile
+          key: sbt-cache
+      - run: sbt ++2.12.10! check
       - save_cache:
+          key: sbt-cache
           paths:
-            - ~/.m2
-          key: v1-dependencies--{{ checksum "build.sbt" }}
-      - run: cat /dev/null | sbt test:test
-  deploy:
+            - "~/.ivy2/cache"
+            - "~/.sbt"
+            - "~/.m2"
+  lint213_jdk11:
     docker:
-      - image: circleci/openjdk:8-jdk
-    environment:
-      JVM_OPTS: -Xmx3200m
-      TERM: dumb
+      - image: hseeberger/scala-sbt:11.0.4_1.3.4_2.13.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: sbt-cache
+      - run: sbt ++2.13.1! check
+      - save_cache:
+          key: sbt-cache
+          paths:
+            - "~/.ivy2/cache"
+            - "~/.sbt"
+            - "~/.m2"
+  test212_jdk11:
+    docker:
+      - image: hseeberger/scala-sbt:11.0.4_1.3.4_2.12.10
+    steps:
+      - checkout
+      - restore_cache:
+          key: sbt-cache
+      - run: sbt ++2.12.10! test
+      - save_cache:
+          key: sbt-cache
+          paths:
+            - "~/.ivy2/cache"
+            - "~/.sbt"
+            - "~/.m2"
+  test213_jdk11:
+    docker:
+      - image: hseeberger/scala-sbt:11.0.4_1.3.4_2.13.1
+    steps:
+      - checkout
+      - restore_cache:
+          key: sbt-cache
+      - run: sbt ++2.13.1! test
+      - save_cache:
+          key: sbt-cache
+          paths:
+            - "~/.ivy2/cache"
+            - "~/.sbt"
+            - "~/.m2"
+  release:
+    docker:
+      - image: hseeberger/scala-sbt:8u222_1.3.4_2.13.1
     steps:
       - checkout
       - run: git fetch --tags
@@ -31,25 +66,40 @@ jobs:
           key: sbt-cache
       - run: echo $GPG_SEC | base64 --decode > /tmp/secring.asc
       - run: echo $GPG_PUB | base64 --decode > /tmp/pubring.asc
-      - run: sbt releaseEarly
+      - run: sbt ++2.12.10! releaseEarly
+      - run: sbt ++2.13.1! releaseEarly
+
 workflows:
   version: 2
   build:
     jobs:
-      - build
-  release:
-    jobs:
-      - build:
+      - lint212_jdk11:
           filters:
             tags:
-              only: /^v[0-9.]+.*/
-            branches:
-              ignore: /.*/
-      - deploy:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - lint213_jdk11:
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - test212_jdk11:
           requires:
-            - build
+            - lint212_jdk11
           filters:
             tags:
-              only: /^v[0-9.]+.*/
-            branches:
-              ignore: /.*/
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - test213_jdk11:
+          requires:
+            - lint213_jdk11
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - release:
+          context: Sonatype
+          requires:
+            - test212_jdk11
+            - test213_jdk11
+            filters:
+              branches:
+                ignore: /.*/
+              tags:
+                only: /^v[0-9]+(\.[0-9]+)*$/
