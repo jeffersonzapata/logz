@@ -10,7 +10,7 @@ object TestLoggerContextSpec extends SimpleTestSuite {
   testAsync("should collect the logs in a list") {
     val context1: Context = Context(Map("correlationId" -> "0001"))
     val context2: Context = Context(Map("correlationId" -> "0002"))
-    val ex: Exception = new Exception("Exception")
+    val ex: Exception     = new Exception("Exception")
 
     val result = for {
       ref <- Ref.of[IO, List[String]](List.empty[String])

@@ -11,10 +11,10 @@ object TestLoggerCtxProvidedSpec extends SimpleTestSuite {
   testAsync("should log correctly") {
     import logz.syntax.context._
     val context: Context = Context(Map("correlationId" -> "corId1"))
-    val ex: Exception = new Exception("Exception")
+    val ex: Exception    = new Exception("Exception")
     val result = for {
       testLogger <- Ref.of[IO, List[String]](List.empty[String])
-      loggerContext: LoggerContext[IO] = TestLoggerContext[IO](testLogger)
+      loggerContext: LoggerContext[IO]         = TestLoggerContext[IO](testLogger)
       implicit0(logger: LoggerCtxProvided[IO]) = context.toLoggerCtxProvided[IO](loggerContext)
       _ <- Logger.debug[IO]("debug")
       _ <- Logger.info[IO]("info")

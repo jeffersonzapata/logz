@@ -1,5 +1,9 @@
 # LogZ
 
+[![CircleCI](https://circleci.com/gh/jeffersonzapata/logz/tree/develop.svg?style=shield)](https://circleci.com/gh/jeffersonzapata/logz/tree/develop)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.jeffersonzapata/logz-core_2.13.svg)](https://repo.maven.apache.org/maven2/com/github/jeffersonzapata/logz-core_2.13/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 Simple lightweight logging library
  - Composable
  - Modular
