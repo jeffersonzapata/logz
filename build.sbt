@@ -69,10 +69,11 @@ inThisBuild(
     ),
     scmInfo := Some(
       ScmInfo(url("https://github.com/jeffersonzapata/logz"), "scm:git:git@github.com:jeffersonzapata/logz.git")),
-    pgpPublicRing      := file("/tmp/pubring.asc"),
-    pgpSecretRing      := file("/tmp/secring.asc"),
-    releaseEarlyWith   := SonatypePublisher,
-    crossScalaVersions := Seq("2.11.12", "2.12.10", scalaVersion.value)
+    pgpPublicRing                  := file("/tmp/pubring.asc"),
+    pgpSecretRing                  := file("/tmp/secring.asc"),
+    releaseEarlyWith               := SonatypePublisher,
+    Keys.aggregate in releaseEarly := false,
+    crossScalaVersions             := Seq("2.11.12", "2.12.10", scalaVersion.value)
   ))
 
 lazy val root = project
