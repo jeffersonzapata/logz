@@ -75,4 +75,9 @@ inThisBuild(
     crossScalaVersions := Seq("2.11.12", "2.12.10", scalaVersion.value)
   ))
 
+lazy val root = project
+  .in(file("."))
+  .settings(skip in publish := true)
+  .aggregate(core, `context-provider`, slf4j, `test-instances`)
+
 addCommandAlias("scalafmtAll", "all scalafmtSbt scalafmt test:scalafmt")
