@@ -1,7 +1,5 @@
 package logz.context.providers
 
-import java.util.concurrent.Executors
-
 import cats.data.NonEmptyList
 import cats.effect.concurrent.Ref
 import cats.effect.{ContextShift, IO, Sync, Timer}
@@ -151,30 +149,24 @@ object TestLoggerCtxProvidedBufferSpec extends SimpleTestSuite {
     implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
     implicit val timer: Timer[IO]     = IO.timer(ExecutionContext.global)
 
-    @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
     @tailrec
-    def a(x: Int, acc: NonEmptyList[IO[Unit]])(implicit logz: LoggerCtxProvidedBuffer[IO]): NonEmptyList[IO[Unit]] =
+    @SuppressWarnings(Array("org.wartremover.warts.ImplicitParameter"))
+    def log(x: Int, acc: NonEmptyList[IO[Unit]])(implicit logz: LoggerCtxProvidedBuffer[IO]): NonEmptyList[IO[Unit]] =
       x match {
         case x if x <= 0 => acc
-        case _ => a(x - 1,IO.sleep(1.seconds).flatMap(_ => LoggerCtxProvidedBuffer.debugB[IO](s"debug")) :: acc)
+        case _ => log(x - 1, IO.sleep(1.seconds).flatMap(_ => LoggerCtxProvidedBuffer.debugB[IO](s"debug")) :: acc)
       }
-
     val ctx: Context = Context(Map("correlation_id" -> "corId1"))
-
     val result = for {
       testLogger <- Ref.of[IO, List[String]](List.empty[String])
       loggerCtx: LoggerContext[IO] = TestLoggerContext[IO](testLogger)
       _ <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit logz: LoggerCtxProvidedBuffer[IO] =>
-          for {
-            _ <- a(100, NonEmptyList.of(LoggerCtxProvidedBuffer.debugB[IO]("debug"))).parSequence
-            _ <- LoggerCtxProvidedBuffer.warnB[IO](s"warnB ${Thread.currentThread().getName}")
-          } yield ()
-
-        }
-      _ <- testLogger.get.map { logs =>
-        //logs.foreach(msg => println(msg))
-        assertEquals(logs.size, 102)
+        for {
+          _ <- log(100, NonEmptyList.of(IO.unit)).parSequence
+          _ <- LoggerCtxProvidedBuffer.warnB[IO](s"warnB ${Thread.currentThread().getName}")
+        } yield ()
       }
+      _ <- testLogger.get.map(logs => assertEquals(logs.size, 101))
     } yield ()
     result.unsafeToFuture()
   }
