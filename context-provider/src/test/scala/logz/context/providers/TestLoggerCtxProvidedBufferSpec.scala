@@ -163,7 +163,7 @@ object TestLoggerCtxProvidedBufferSpec extends SimpleTestSuite {
       _ <- ctx.toLoggerCtxProvidedBuffer[IO, Unit](loggerCtx) { implicit logz: LoggerCtxProvidedBuffer[IO] =>
         for {
           _ <- log(100, NonEmptyList.of(IO.unit)).parSequence
-          _ <- LoggerCtxProvidedBuffer.warnB[IO](s"warnB ${Thread.currentThread().getName}")
+          _ <- LoggerCtxProvidedBuffer.warnB[IO](s"warnB")
         } yield ()
       }
       _ <- testLogger.get.map(logs => assertEquals(logs.size, 101))
