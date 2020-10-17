@@ -1,8 +1,8 @@
 package logz.context.providers
 
 import cats.effect.Sync
+import cats.effect.concurrent.Ref
 import cats.syntax.applicativeError._
-import cats.syntax.apply._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import logz._
@@ -15,27 +15,29 @@ sealed abstract class LoggerCtxProvidedBuffer[F[_]] private extends Logger[F] {
 object LoggerCtxProvidedBuffer {
 
   def apply[F[A]: Sync: LoggerContext, A](context: Context)(f: LoggerCtxProvidedBuffer[F] => F[A]): F[A] = {
-    implicit val lcpb: LoggerCtxProvidedBuffer[F] = LoggerCtxProvidedBuffer.create[F](context)
-    f(lcpb).handleErrorWith { error =>
-      LoggerCtxProvidedBuffer.errorB[F, Throwable](error)("Unhandled Error") *> error.raiseError[F, A]
-    }
+    for {
+      buffer <- Ref[F].of(Sync[F].unit)
+      implicit0(logB: LoggerCtxProvidedBuffer[F]) = LoggerCtxProvidedBuffer.create[F](context, buffer)
+      result <- f(logB).handleErrorWith { error =>
+        LoggerCtxProvidedBuffer.errorB[F, Throwable](error)("Unhandled Error").flatMap(_ => error.raiseError[F, A])
+      }
+    } yield result
   }
 
-  private def create[F[_]: Sync: LoggerContext](context: Context): LoggerCtxProvidedBuffer[F] =
+  private def create[F[_]: Sync: LoggerContext](context: Context, buffer: Ref[F, F[Unit]]): LoggerCtxProvidedBuffer[F] =
     new LoggerCtxProvidedBuffer[F] {
       override def log(level: Level)(msg: => String): F[Unit] = LoggerContext[F].log(context)(level)(msg)
 
-      @SuppressWarnings(Array("org.wartremover.warts.Var"))
-      private var logsBuffer: F[Unit] = Sync[F].unit
       override def logToBuffer(level: Level)(msg: => String): F[Unit] = level match {
         case _ @(Warn | Error(_)) =>
           for {
-            _ <- logsBuffer
-            _ <- LoggerContext[F].log(context)(level)(msg)
-          } yield logsBuffer = Sync[F].unit
+            logs <- buffer.get
+            _    <- logs
+            _    <- LoggerContext[F].log(context)(level)(msg)
+            _    <- buffer.modify(_ => (Sync[F].unit, ()))
+          } yield ()
         case _ =>
-          logsBuffer = logsBuffer.flatMap(_ => LoggerContext[F].log(context)(level)(msg))
-          Sync[F].unit
+          buffer.modify(f => (f.flatMap(_ => LoggerContext[F].log(context)(level)(msg)), ()))
       }
     }
 
